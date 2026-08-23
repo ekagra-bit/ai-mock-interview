@@ -1,12 +1,16 @@
 import { useRef, useState } from 'react';
 import { ApiRequestError, parseResume, type ParsedResumeResponse } from '../services/api';
 
+interface ResumeUploadProps {
+  onParsed: (resume: ParsedResumeResponse) => void;
+}
+
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
 
 const acceptedTypes =
   '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-export function ResumeUpload() {
+export function ResumeUpload({ onParsed }: ResumeUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>('idle');
@@ -35,6 +39,7 @@ export function ResumeUpload() {
     try {
       const result = await parseResume(file);
       setParsedResume(result);
+      onParsed(result);
       setStatus('success');
     } catch (error) {
       setStatus('error');

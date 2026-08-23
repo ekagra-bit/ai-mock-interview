@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ResumeUpload } from '../components/ResumeUpload';
 import { getHealth } from '../services/api';
+import type { ParsedResume } from '../types/interview';
+
+interface LandingPageProps {
+  resume: ParsedResume | null;
+  onResumeParsed: (resume: ParsedResume) => void;
+}
 
 type HealthStatus = 'checking' | 'connected' | 'unavailable';
 
@@ -10,7 +17,7 @@ const statusMessage: Record<HealthStatus, string> = {
   unavailable: 'Frontend is running. The API is not reachable yet.',
 };
 
-export function LandingPage() {
+export function LandingPage({ resume, onResumeParsed }: LandingPageProps) {
   const [healthStatus, setHealthStatus] = useState<HealthStatus>('checking');
 
   useEffect(() => {
@@ -39,7 +46,15 @@ export function LandingPage() {
         >
           {statusMessage[healthStatus]}
         </p>
-        <ResumeUpload />
+        <ResumeUpload onParsed={onResumeParsed} />
+        {resume && (
+          <Link
+            to="/setup"
+            className="mt-6 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"
+          >
+            Continue to interview setup
+          </Link>
+        )}
       </section>
     </main>
   );
