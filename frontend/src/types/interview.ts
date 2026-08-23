@@ -5,6 +5,7 @@ export const DIFFICULTIES = ['Easy', 'Medium', 'Hard'] as const;
 export type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number];
 export type InterviewType = (typeof INTERVIEW_TYPES)[number];
 export type Difficulty = (typeof DIFFICULTIES)[number];
+export type QuestionCategory = 'technical' | 'behavioral' | 'problem-solving' | 'hr';
 
 export interface ParsedResume {
   filename: string;
@@ -33,6 +34,22 @@ export interface InterviewSetupRequest {
 
 export interface ValidatedInterviewConfiguration {
   resumeFilename: string;
+  targetRole: string;
+  jobDescription?: string;
+  experienceLevel: ExperienceLevel;
+  interviewType: InterviewType;
+  difficulty: Difficulty;
+}
+
+export interface InterviewQuestion {
+  question: string;
+  category: QuestionCategory;
+  difficulty: Difficulty;
+  topic: string;
+}
+
+export interface InterviewQuestionRequest {
+  resumeText: string;
   targetRole: string;
   jobDescription?: string;
   experienceLevel: ExperienceLevel;

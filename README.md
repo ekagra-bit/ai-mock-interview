@@ -21,7 +21,8 @@ The frontend owns presentation and user interaction. The backend owns API endpoi
 - Frontend: Vite, React, React Router, TypeScript, Tailwind CSS
 - Backend: Node.js, Express, TypeScript
 - Resume parsing: Multer, pdf-parse, Mammoth
-- Planned integrations: MongoDB and an LLM API (not connected yet)
+- LLM provider: Google Gemini via the official `@google/genai` SDK
+- Planned integration: MongoDB (not connected yet)
 
 ## Setup
 
@@ -62,7 +63,26 @@ npm.cmd run format:check --prefix frontend
 npm.cmd run lint --prefix backend
 npm.cmd run build --prefix backend
 npm.cmd run format:check --prefix backend
+npm.cmd run test:gemini --prefix backend
 ```
+
+## Gemini connectivity test
+
+Gemini is configured only for an internal connectivity test at this stage; it is not connected to any API endpoint or interview feature.
+
+1. Add your real key to `backend/.env`:
+
+   ```env
+   GEMINI_API_KEY=your_key_here
+   ```
+
+2. Run the test:
+
+   ```powershell
+   npm.cmd run test:gemini --prefix backend
+   ```
+
+The successful output is `Gemini connection successful.` The real `backend/.env` file is Git-ignored and must never be committed. Use `backend/.env.example` as the safe template.
 
 ## Resume upload API
 
@@ -114,19 +134,50 @@ Success response:
 
 Failures return `{ "success": false, "error": { "code": "...", "message": "..." } }` without internal stack traces.
 
+## First interview question API
+
+`POST /api/interviews/question` generates and validates one personalized first question from the parsed resume and validated interview preferences.
+
+```json
+{
+  "resumeText": "Candidate resume text...",
+  "targetRole": "Software Engineer",
+  "jobDescription": "Optional job description",
+  "experienceLevel": "Fresher",
+  "interviewType": "Technical",
+  "difficulty": "Medium"
+}
+```
+
+```json
+{
+  "success": true,
+  "question": {
+    "question": "In your TaskBoard project, how did you use TypeScript to model task data?",
+    "category": "technical",
+    "difficulty": "Medium",
+    "topic": "TypeScript"
+  }
+}
+```
+
+The backend requires structured JSON from Gemini and validates every response before returning it. A question category is one of `technical`, `behavioral`, `problem-solving`, or `hr`; the returned difficulty must exactly match the request.
+
 ## Implemented today
 
 - PDF/DOCX upload, validation, and readable text extraction
 - Resume upload UI with loading, error, and preview states
 - Interview setup form with target role, optional job description, centralized enum options, and client/server validation
-- Setup completion placeholder route; AI-generated questions are the next milestone
+- One Gemini-generated, schema-validated first question on the interview session page
+- Answer capture with an explicit no-evaluation placeholder
+- Gemini provider and internal connectivity test using `gemini-3.6-flash`
 - Strict TypeScript, ESLint, Prettier, CORS, environment templates, and git ignores
 
 ## Not implemented yet
 
 - Authentication
 - MongoDB connection and persistence
-- AI/LLM resume analysis or interview questions
+- AI/LLM resume analysis
 - Adaptive questioning, answer evaluation, timer, report, or history
 - OCR and voice interviews
 - Production deployment configuration

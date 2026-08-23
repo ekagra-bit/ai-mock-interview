@@ -5,6 +5,7 @@ import {
   type Difficulty,
   type ExperienceLevel,
   type InterviewSetupConfiguration,
+  type InterviewQuestionRequest,
   type InterviewSetupRequest,
   type InterviewType,
 } from '../types/interview.js';
@@ -111,5 +112,32 @@ export function validateInterviewSetup(payload: unknown): InterviewSetupConfigur
     experienceLevel: request.experienceLevel,
     interviewType: request.interviewType,
     difficulty: request.difficulty,
+  };
+}
+
+export function validateInterviewQuestionRequest(payload: unknown): InterviewQuestionRequest {
+  if (!isRecord(payload)) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'A valid question request is required.');
+  }
+
+  return {
+    resumeText: requiredText(payload.resumeText, 'Resume text', MAX_RESUME_TEXT_LENGTH),
+    targetRole: requiredText(payload.targetRole, 'Target role', MAX_TARGET_ROLE_LENGTH),
+    jobDescription: optionalText(
+      payload.jobDescription,
+      'Job description',
+      MAX_JOB_DESCRIPTION_LENGTH,
+    ),
+    experienceLevel: enumValue<ExperienceLevel>(
+      payload.experienceLevel,
+      EXPERIENCE_LEVELS,
+      'Experience level',
+    ),
+    interviewType: enumValue<InterviewType>(
+      payload.interviewType,
+      INTERVIEW_TYPES,
+      'Interview type',
+    ),
+    difficulty: enumValue<Difficulty>(payload.difficulty, DIFFICULTIES, 'Difficulty'),
   };
 }

@@ -14,6 +14,7 @@ function parsePort(value: string | undefined): number {
 
 export const env = {
   port: parsePort(process.env.PORT),
+  geminiApiKey: process.env.GEMINI_API_KEY?.trim(),
   clientOrigins: (process.env.CLIENT_ORIGIN ?? defaultClientOrigin)
     .split(',')
     .map((origin) => origin.trim())

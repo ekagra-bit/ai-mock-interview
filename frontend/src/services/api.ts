@@ -3,7 +3,12 @@ export interface HealthResponse {
   service: string;
 }
 
-import type { InterviewSetupRequest, ValidatedInterviewConfiguration } from '../types/interview';
+import type {
+  InterviewQuestion,
+  InterviewQuestionRequest,
+  InterviewSetupRequest,
+  ValidatedInterviewConfiguration,
+} from '../types/interview';
 
 export interface ParsedResumeResponse {
   success: true;
@@ -17,6 +22,11 @@ export interface InterviewSetupResponse {
   success: true;
   message: string;
   configuration: ValidatedInterviewConfiguration;
+}
+
+export interface InterviewQuestionResponse {
+  success: true;
+  question: InterviewQuestion;
 }
 
 interface ApiFailureResponse {
@@ -95,6 +105,34 @@ export async function setupInterview(
     const error = data && 'error' in data ? data.error : undefined;
     throw new ApiRequestError(
       error?.message ?? 'The interview setup could not be validated.',
+      error?.code,
+    );
+  }
+
+  return data;
+}
+
+export async function generateInterviewQuestion(
+  context: InterviewQuestionRequest,
+): Promise<InterviewQuestionResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}/api/interviews/question`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(context),
+    });
+  } catch {
+    throw new ApiRequestError('Unable to reach the API. Check that the backend is running.');
+  }
+
+  const data = (await response.json().catch(() => null)) as
+    InterviewQuestionResponse | ApiFailureResponse | null;
+
+  if (!response.ok || !data || !data.success) {
+    const error = data && 'error' in data ? data.error : undefined;
+    throw new ApiRequestError(
+      error?.message ?? 'The first interview question could not be generated.',
       error?.code,
     );
   }

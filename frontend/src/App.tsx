@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { InterviewSessionPlaceholderPage } from './pages/InterviewSessionPlaceholderPage';
+import { InterviewSessionPage } from './pages/InterviewSessionPage';
 import { InterviewSetupPage } from './pages/InterviewSetupPage';
 import { LandingPage } from './pages/LandingPage';
 import type { ParsedResume, ValidatedInterviewConfiguration } from './types/interview';
@@ -19,7 +19,7 @@ function App() {
         />
         <Route
           path="/interview"
-          element={<InterviewSessionPlaceholderPage configuration={configuration} />}
+          element={<InterviewSessionPage configuration={configuration} resume={resume} />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
