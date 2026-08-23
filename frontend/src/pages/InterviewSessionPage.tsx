@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import {
   ApiRequestError,
   evaluateInterviewAnswer,
+  generateNextInterviewQuestion,
   generateInterviewQuestion,
 } from '../services/api';
 import type {
   AnswerEvaluation,
+  InterviewTurn,
   InterviewQuestion,
   ParsedResume,
   ValidatedInterviewConfiguration,
@@ -24,7 +26,11 @@ export function InterviewSessionPage({ configuration, resume }: InterviewSession
   const [answer, setAnswer] = useState('');
   const [evaluation, setEvaluation] = useState<AnswerEvaluation | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isPreparingNextQuestion, setIsPreparingNextQuestion] = useState(false);
   const [evaluationError, setEvaluationError] = useState<string | null>(null);
+  const [turnHistory, setTurnHistory] = useState<InterviewTurn[]>([]);
+  const [lastEvaluation, setLastEvaluation] = useState<AnswerEvaluation | null>(null);
+  const [isEnded, setIsEnded] = useState(false);
 
   useEffect(() => {
     if (!configuration || !resume || hasRequestedQuestion.current) {
@@ -89,12 +95,53 @@ export function InterviewSessionPage({ configuration, resume }: InterviewSession
         resumeText: resume.text,
       });
       setEvaluation(result.evaluation);
+      await prepareNextQuestion(result.evaluation);
     } catch (error) {
       setEvaluationError(
         error instanceof ApiRequestError ? error.message : 'The answer could not be evaluated.',
       );
     } finally {
       setIsEvaluating(false);
+    }
+  }
+
+  async function prepareNextQuestion(currentEvaluation: AnswerEvaluation) {
+    if (!question || !configuration || !resume) {
+      return;
+    }
+
+    setIsPreparingNextQuestion(true);
+    setEvaluationError(null);
+
+    try {
+      const result = await generateNextInterviewQuestion({
+        resumeText: resume.text,
+        targetRole: configuration.targetRole,
+        ...(configuration.jobDescription ? { jobDescription: configuration.jobDescription } : {}),
+        experienceLevel: configuration.experienceLevel,
+        interviewType: configuration.interviewType,
+        difficulty: configuration.difficulty,
+        previousQuestion: question,
+        previousAnswer: answer.trim(),
+        evaluation: currentEvaluation,
+      });
+
+      setTurnHistory((history) => [
+        ...history,
+        { question, answer: answer.trim(), evaluation: currentEvaluation },
+      ]);
+      setLastEvaluation(currentEvaluation);
+      setQuestion(result.question);
+      setAnswer('');
+      setEvaluation(null);
+    } catch (error) {
+      setEvaluationError(
+        error instanceof ApiRequestError
+          ? error.message
+          : 'The next interview question could not be generated.',
+      );
+    } finally {
+      setIsPreparingNextQuestion(false);
     }
   }
 
@@ -115,28 +162,49 @@ export function InterviewSessionPage({ configuration, resume }: InterviewSession
           </span>
         </div>
 
-        {!question && !errorMessage && (
+        {isEnded ? (
+          <section className="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-6">
+            <h2 className="text-xl font-semibold text-slate-900">Interview session ended</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-700">
+              Final report will be available in the next milestone.
+            </p>
+            <Link
+              to="/setup"
+              className="mt-5 inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500"
+            >
+              Start a new setup
+            </Link>
+          </section>
+        ) : !question && !errorMessage ? (
           <div
             className="mt-10 rounded-lg bg-indigo-50 px-5 py-6 text-sm font-medium text-indigo-800"
             role="status"
           >
             Generating your first personalized interview question…
           </div>
-        )}
+        ) : null}
 
-        {errorMessage && (
+        {errorMessage && !isEnded && (
           <div className="mt-10 rounded-lg bg-red-50 px-5 py-4 text-sm text-red-700" role="alert">
             {errorMessage}
           </div>
         )}
 
-        {question && (
+        {question && !isEnded && (
           <>
+            {lastEvaluation && (
+              <LastEvaluationSummary
+                evaluation={lastEvaluation}
+                questionNumber={turnHistory.length}
+              />
+            )}
             <section
               className="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-6"
               aria-labelledby="question-heading"
             >
-              <p className="text-sm font-semibold text-indigo-600">{question.topic}</p>
+              <p className="text-sm font-semibold text-indigo-600">
+                Question {turnHistory.length + 1} · {question.topic}
+              </p>
               <h2
                 id="question-heading"
                 className="mt-3 text-xl font-semibold leading-8 text-slate-900"
@@ -163,7 +231,7 @@ export function InterviewSessionPage({ configuration, resume }: InterviewSession
               />
               <button
                 type="submit"
-                disabled={!answer.trim() || isEvaluating}
+                disabled={!answer.trim() || isEvaluating || isPreparingNextQuestion}
                 className="mt-4 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {isEvaluating ? 'Evaluating answer…' : 'Submit Answer'}
@@ -177,10 +245,43 @@ export function InterviewSessionPage({ configuration, resume }: InterviewSession
             )}
 
             {evaluation && <EvaluationResult evaluation={evaluation} />}
+
+            {isPreparingNextQuestion && (
+              <p
+                className="mt-5 rounded-lg bg-indigo-50 px-4 py-3 text-sm text-indigo-800"
+                role="status"
+              >
+                Preparing your next question...
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setIsEnded(true)}
+              disabled={isEvaluating || isPreparingNextQuestion}
+              className="mt-6 text-sm font-semibold text-slate-600 hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
+            >
+              End Interview
+            </button>
           </>
         )}
       </section>
     </main>
+  );
+}
+
+function LastEvaluationSummary({
+  evaluation,
+  questionNumber,
+}: {
+  evaluation: AnswerEvaluation;
+  questionNumber: number;
+}) {
+  return (
+    <p className="mt-8 rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-700">
+      Question {questionNumber} evaluation: {evaluation.overallScore}/100. A new adaptive question
+      has been prepared from this feedback.
+    </p>
   );
 }
 
@@ -216,10 +317,6 @@ function EvaluationResult({ evaluation }: { evaluation: AnswerEvaluation }) {
 
       <FeedbackList title="Strengths" items={evaluation.strengths} tone="emerald" />
       <FeedbackList title="Improvements" items={evaluation.improvements} tone="amber" />
-
-      <p className="mt-6 rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-700">
-        Next-question functionality will be added in the next milestone.
-      </p>
     </section>
   );
 }

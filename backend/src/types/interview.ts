@@ -7,6 +7,8 @@ export type InterviewType = (typeof INTERVIEW_TYPES)[number];
 export type Difficulty = (typeof DIFFICULTIES)[number];
 export const QUESTION_CATEGORIES = ['technical', 'behavioral', 'problem-solving', 'hr'] as const;
 export type QuestionCategory = (typeof QUESTION_CATEGORIES)[number];
+export const QUESTION_TYPES = ['follow-up', 'new-topic'] as const;
+export type QuestionType = (typeof QUESTION_TYPES)[number];
 
 export interface InterviewSetupRequest {
   resumeFilename: string;
@@ -52,6 +54,21 @@ export interface InterviewQuestion {
 export interface InterviewQuestionResponse {
   success: true;
   question: InterviewQuestion;
+}
+
+export interface AdaptiveInterviewQuestion extends InterviewQuestion {
+  questionType: QuestionType;
+}
+
+export interface NextQuestionRequest extends InterviewQuestionRequest {
+  previousQuestion: InterviewQuestion;
+  previousAnswer: string;
+  evaluation: AnswerEvaluation;
+}
+
+export interface NextQuestionResponse {
+  success: true;
+  question: AdaptiveInterviewQuestion;
 }
 
 export interface AnswerEvaluationRequest {

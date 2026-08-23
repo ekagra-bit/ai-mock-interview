@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import type {
   AnswerEvaluationResponse,
+  NextQuestionResponse,
   InterviewQuestionResponse,
   InterviewSetupResponse,
 } from '../types/interview.js';
@@ -8,8 +9,10 @@ import {
   validateAnswerEvaluationRequest,
   validateInterviewQuestionRequest,
   validateInterviewSetup,
+  validateNextQuestionRequest,
 } from '../services/interview-setup.service.js';
 import { evaluateInterviewAnswer } from '../services/answer-evaluation.service.js';
+import { generateAdaptiveNextQuestion } from '../services/adaptive-question.service.js';
 import { generateFirstInterviewQuestion } from '../services/question-generation.service.js';
 
 export function setupInterview(request: Request, response: Response<InterviewSetupResponse>): void {
@@ -40,4 +43,14 @@ export async function evaluateAnswer(
   const evaluation = await evaluateInterviewAnswer(context);
 
   response.status(200).json({ success: true, evaluation });
+}
+
+export async function generateNextQuestion(
+  request: Request,
+  response: Response<NextQuestionResponse>,
+): Promise<void> {
+  const context = validateNextQuestionRequest(request.body);
+  const question = await generateAdaptiveNextQuestion(context);
+
+  response.status(200).json({ success: true, question });
 }

@@ -197,6 +197,39 @@ The backend requires structured JSON from Gemini and validates every response be
 
 All component scores are integers from 0 to 100. The backend calculates `overallScore` as `technicalKnowledge * 0.35 + relevance * 0.25 + communication * 0.20 + problemSolving * 0.20`, rounded to the nearest integer.
 
+## Adaptive next-question API
+
+`POST /api/interviews/next-question` creates one real follow-up or related next question after an answer has been evaluated. It uses only the most recent question, answer, and evaluation alongside the original resume and setup context.
+
+```json
+{
+  "resumeText": "Candidate resume text...",
+  "targetRole": "Frontend Developer",
+  "experienceLevel": "Junior",
+  "interviewType": "Technical",
+  "difficulty": "Medium",
+  "previousQuestion": {
+    "question": "How would you prevent stale state after an API call?",
+    "category": "technical",
+    "difficulty": "Medium",
+    "topic": "React state management"
+  },
+  "previousAnswer": "I would use functional state updates...",
+  "evaluation": {
+    "overallScore": 85,
+    "technicalKnowledge": 85,
+    "relevance": 85,
+    "communication": 85,
+    "problemSolving": 85,
+    "summary": "...",
+    "strengths": ["..."],
+    "improvements": ["..."]
+  }
+}
+```
+
+The response is a schema-validated question with `questionType` set to `follow-up` or `new-topic`. The backend rejects malformed prior evaluations and normalized exact repeats of the immediately previous question. The frontend maintains completed turns in session memory only and sends only the most recent turn for adaptive generation.
+
 ## Implemented today
 
 - PDF/DOCX upload, validation, and readable text extraction
@@ -204,6 +237,7 @@ All component scores are integers from 0 to 100. The backend calculates `overall
 - Interview setup form with target role, optional job description, centralized enum options, and client/server validation
 - One Gemini-generated, schema-validated first question on the interview session page
 - One Gemini-generated, schema-validated answer evaluation with deterministic overall scoring
+- Repeated in-session adaptive question, answer, and evaluation cycles with local-only turn history
 - Gemini provider and internal connectivity test using `gemini-3.6-flash`
 - Strict TypeScript, ESLint, Prettier, CORS, environment templates, and git ignores
 
@@ -212,6 +246,6 @@ All component scores are integers from 0 to 100. The backend calculates `overall
 - Authentication
 - MongoDB connection and persistence
 - AI/LLM resume analysis
-- Adaptive questioning, timer, report, or history
+- Timer, final report, and persistent interview history
 - OCR and voice interviews
 - Production deployment configuration

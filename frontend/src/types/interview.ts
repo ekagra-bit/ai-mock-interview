@@ -6,6 +6,7 @@ export type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number];
 export type InterviewType = (typeof INTERVIEW_TYPES)[number];
 export type Difficulty = (typeof DIFFICULTIES)[number];
 export type QuestionCategory = 'technical' | 'behavioral' | 'problem-solving' | 'hr';
+export type QuestionType = 'follow-up' | 'new-topic';
 
 export interface ParsedResume {
   filename: string;
@@ -55,6 +56,22 @@ export interface InterviewQuestionRequest {
   experienceLevel: ExperienceLevel;
   interviewType: InterviewType;
   difficulty: Difficulty;
+}
+
+export interface AdaptiveInterviewQuestion extends InterviewQuestion {
+  questionType: QuestionType;
+}
+
+export interface NextQuestionRequest extends InterviewQuestionRequest {
+  previousQuestion: InterviewQuestion;
+  previousAnswer: string;
+  evaluation: AnswerEvaluation;
+}
+
+export interface InterviewTurn {
+  question: InterviewQuestion;
+  answer: string;
+  evaluation: AnswerEvaluation;
 }
 
 export interface AnswerEvaluation {
