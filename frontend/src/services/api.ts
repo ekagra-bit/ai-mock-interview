@@ -4,6 +4,8 @@ export interface HealthResponse {
 }
 
 import type {
+  AnswerEvaluation,
+  AnswerEvaluationRequest,
   InterviewQuestion,
   InterviewQuestionRequest,
   InterviewSetupRequest,
@@ -27,6 +29,11 @@ export interface InterviewSetupResponse {
 export interface InterviewQuestionResponse {
   success: true;
   question: InterviewQuestion;
+}
+
+export interface AnswerEvaluationResponse {
+  success: true;
+  evaluation: AnswerEvaluation;
 }
 
 interface ApiFailureResponse {
@@ -135,6 +142,31 @@ export async function generateInterviewQuestion(
       error?.message ?? 'The first interview question could not be generated.',
       error?.code,
     );
+  }
+
+  return data;
+}
+
+export async function evaluateInterviewAnswer(
+  context: AnswerEvaluationRequest,
+): Promise<AnswerEvaluationResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}/api/interviews/evaluate-answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(context),
+    });
+  } catch {
+    throw new ApiRequestError('Unable to reach the API. Check that the backend is running.');
+  }
+
+  const data = (await response.json().catch(() => null)) as
+    AnswerEvaluationResponse | ApiFailureResponse | null;
+
+  if (!response.ok || !data || !data.success) {
+    const error = data && 'error' in data ? data.error : undefined;
+    throw new ApiRequestError(error?.message ?? 'The answer could not be evaluated.', error?.code);
   }
 
   return data;

@@ -17,6 +17,29 @@ const QUESTION_RESPONSE_SCHEMA = {
   additionalProperties: false,
 };
 
+const EVALUATION_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    technicalKnowledge: { type: 'integer', minimum: 0, maximum: 100 },
+    relevance: { type: 'integer', minimum: 0, maximum: 100 },
+    communication: { type: 'integer', minimum: 0, maximum: 100 },
+    problemSolving: { type: 'integer', minimum: 0, maximum: 100 },
+    summary: { type: 'string' },
+    strengths: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 3 },
+    improvements: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 3 },
+  },
+  required: [
+    'technicalKnowledge',
+    'relevance',
+    'communication',
+    'problemSolving',
+    'summary',
+    'strengths',
+    'improvements',
+  ],
+  additionalProperties: false,
+};
+
 type GeminiErrorCode =
   'MISSING_API_KEY' | 'AUTHENTICATION_ERROR' | 'RATE_LIMITED' | 'API_ERROR' | 'UNEXPECTED_RESPONSE';
 
@@ -116,6 +139,32 @@ export async function generateGeminiQuestion(prompt: string): Promise<string> {
       throw new GeminiProviderError(
         'UNEXPECTED_RESPONSE',
         'Gemini returned no text for the interview question.',
+      );
+    }
+
+    return responseText;
+  } catch (error) {
+    throw mapGeminiError(error);
+  }
+}
+
+export async function generateGeminiEvaluation(prompt: string): Promise<string> {
+  try {
+    const client = createGeminiClient();
+    const response = await client.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseJsonSchema: EVALUATION_RESPONSE_SCHEMA,
+      },
+    });
+    const responseText = response.text?.trim();
+
+    if (!responseText) {
+      throw new GeminiProviderError(
+        'UNEXPECTED_RESPONSE',
+        'Gemini returned no text for the answer evaluation.',
       );
     }
 

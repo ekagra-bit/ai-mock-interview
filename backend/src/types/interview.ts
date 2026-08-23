@@ -53,3 +53,29 @@ export interface InterviewQuestionResponse {
   success: true;
   question: InterviewQuestion;
 }
+
+export interface AnswerEvaluationRequest {
+  question: string;
+  answer: string;
+  targetRole: string;
+  experienceLevel: ExperienceLevel;
+  interviewType: InterviewType;
+  difficulty: Difficulty;
+  resumeText?: string;
+}
+
+export interface AnswerEvaluation {
+  overallScore: number;
+  technicalKnowledge: number;
+  relevance: number;
+  communication: number;
+  problemSolving: number;
+  summary: string;
+  strengths: string[];
+  improvements: string[];
+}
+
+export interface AnswerEvaluationResponse {
+  success: true;
+  evaluation: AnswerEvaluation;
+}

@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ApiRequestError, generateInterviewQuestion } from '../services/api';
+import {
+  ApiRequestError,
+  evaluateInterviewAnswer,
+  generateInterviewQuestion,
+} from '../services/api';
 import type {
+  AnswerEvaluation,
   InterviewQuestion,
   ParsedResume,
   ValidatedInterviewConfiguration,
@@ -17,7 +22,9 @@ export function InterviewSessionPage({ configuration, resume }: InterviewSession
   const [question, setQuestion] = useState<InterviewQuestion | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [answer, setAnswer] = useState('');
-  const [answerSubmitted, setAnswerSubmitted] = useState(false);
+  const [evaluation, setEvaluation] = useState<AnswerEvaluation | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evaluationError, setEvaluationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!configuration || !resume || hasRequestedQuestion.current) {
@@ -62,10 +69,32 @@ export function InterviewSessionPage({ configuration, resume }: InterviewSession
     );
   }
 
-  function submitAnswer(event: React.FormEvent<HTMLFormElement>) {
+  async function submitAnswer(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (answer.trim()) {
-      setAnswerSubmitted(true);
+    if (!question || !answer.trim() || !configuration || !resume) {
+      return;
+    }
+
+    setIsEvaluating(true);
+    setEvaluationError(null);
+
+    try {
+      const result = await evaluateInterviewAnswer({
+        question: question.question,
+        answer: answer.trim(),
+        targetRole: configuration.targetRole,
+        experienceLevel: configuration.experienceLevel,
+        interviewType: configuration.interviewType,
+        difficulty: configuration.difficulty,
+        resumeText: resume.text,
+      });
+      setEvaluation(result.evaluation);
+    } catch (error) {
+      setEvaluationError(
+        error instanceof ApiRequestError ? error.message : 'The answer could not be evaluated.',
+      );
+    } finally {
+      setIsEvaluating(false);
     }
   }
 
@@ -125,7 +154,8 @@ export function InterviewSessionPage({ configuration, resume }: InterviewSession
                 value={answer}
                 onChange={(event) => {
                   setAnswer(event.target.value);
-                  setAnswerSubmitted(false);
+                  setEvaluation(null);
+                  setEvaluationError(null);
                 }}
                 rows={9}
                 placeholder="Write your answer here..."
@@ -133,24 +163,87 @@ export function InterviewSessionPage({ configuration, resume }: InterviewSession
               />
               <button
                 type="submit"
-                disabled={!answer.trim()}
+                disabled={!answer.trim() || isEvaluating}
                 className="mt-4 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                Submit Answer
+                {isEvaluating ? 'Evaluating answer…' : 'Submit Answer'}
               </button>
             </form>
 
-            {answerSubmitted && (
-              <p
-                className="mt-5 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800"
-                role="status"
-              >
-                Answer evaluation will be added in the next milestone.
+            {evaluationError && (
+              <p className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+                {evaluationError}
               </p>
             )}
+
+            {evaluation && <EvaluationResult evaluation={evaluation} />}
           </>
         )}
       </section>
     </main>
+  );
+}
+
+function EvaluationResult({ evaluation }: { evaluation: AnswerEvaluation }) {
+  const scoreCards = [
+    ['Technical Knowledge', evaluation.technicalKnowledge],
+    ['Relevance', evaluation.relevance],
+    ['Communication', evaluation.communication],
+    ['Problem Solving', evaluation.problemSolving],
+  ];
+
+  return (
+    <section className="mt-8 border-t border-slate-200 pt-8" aria-labelledby="evaluation-heading">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold tracking-wide text-indigo-600">ANSWER EVALUATION</p>
+          <h2 id="evaluation-heading" className="mt-1 text-2xl font-bold text-slate-900">
+            Overall score: {evaluation.overallScore}/100
+          </h2>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {scoreCards.map(([label, score]) => (
+          <div key={label} className="rounded-lg bg-slate-50 p-4">
+            <p className="text-sm text-slate-600">{label}</p>
+            <p className="mt-1 text-xl font-bold text-slate-900">{score}/100</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-6 text-sm leading-6 text-slate-700">{evaluation.summary}</p>
+
+      <FeedbackList title="Strengths" items={evaluation.strengths} tone="emerald" />
+      <FeedbackList title="Improvements" items={evaluation.improvements} tone="amber" />
+
+      <p className="mt-6 rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-700">
+        Next-question functionality will be added in the next milestone.
+      </p>
+    </section>
+  );
+}
+
+function FeedbackList({
+  title,
+  items,
+  tone,
+}: {
+  title: string;
+  items: string[];
+  tone: 'emerald' | 'amber';
+}) {
+  const toneClassName =
+    tone === 'emerald' ? 'bg-emerald-50 text-emerald-950' : 'bg-amber-50 text-amber-950';
+
+  return (
+    <section className={`mt-5 rounded-lg p-4 ${toneClassName}`}>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </section>
   );
 }

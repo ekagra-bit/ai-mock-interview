@@ -163,13 +163,47 @@ Failures return `{ "success": false, "error": { "code": "...", "message": "..." 
 
 The backend requires structured JSON from Gemini and validates every response before returning it. A question category is one of `technical`, `behavioral`, `problem-solving`, or `hr`; the returned difficulty must exactly match the request.
 
+## Answer evaluation API
+
+`POST /api/interviews/evaluate-answer` evaluates the answer to the generated first question. Gemini returns only the four component scores and concise feedback; the backend validates that response and calculates the overall score deterministically.
+
+```json
+{
+  "question": "How would you prevent stale state after an asynchronous API call?",
+  "answer": "I would use a functional state update and prevent older requests from overwriting new state.",
+  "targetRole": "Frontend Developer",
+  "experienceLevel": "Junior",
+  "interviewType": "Technical",
+  "difficulty": "Medium",
+  "resumeText": "Optional parsed resume context"
+}
+```
+
+```json
+{
+  "success": true,
+  "evaluation": {
+    "overallScore": 82,
+    "technicalKnowledge": 85,
+    "relevance": 80,
+    "communication": 78,
+    "problemSolving": 84,
+    "summary": "...",
+    "strengths": ["..."],
+    "improvements": ["..."]
+  }
+}
+```
+
+All component scores are integers from 0 to 100. The backend calculates `overallScore` as `technicalKnowledge * 0.35 + relevance * 0.25 + communication * 0.20 + problemSolving * 0.20`, rounded to the nearest integer.
+
 ## Implemented today
 
 - PDF/DOCX upload, validation, and readable text extraction
 - Resume upload UI with loading, error, and preview states
 - Interview setup form with target role, optional job description, centralized enum options, and client/server validation
 - One Gemini-generated, schema-validated first question on the interview session page
-- Answer capture with an explicit no-evaluation placeholder
+- One Gemini-generated, schema-validated answer evaluation with deterministic overall scoring
 - Gemini provider and internal connectivity test using `gemini-3.6-flash`
 - Strict TypeScript, ESLint, Prettier, CORS, environment templates, and git ignores
 
@@ -178,6 +212,6 @@ The backend requires structured JSON from Gemini and validates every response be
 - Authentication
 - MongoDB connection and persistence
 - AI/LLM resume analysis
-- Adaptive questioning, answer evaluation, timer, report, or history
+- Adaptive questioning, timer, report, or history
 - OCR and voice interviews
 - Production deployment configuration

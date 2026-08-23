@@ -3,6 +3,7 @@ import {
   EXPERIENCE_LEVELS,
   INTERVIEW_TYPES,
   type Difficulty,
+  type AnswerEvaluationRequest,
   type ExperienceLevel,
   type InterviewSetupConfiguration,
   type InterviewQuestionRequest,
@@ -15,6 +16,8 @@ const MAX_RESUME_FILENAME_LENGTH = 255;
 const MAX_RESUME_TEXT_LENGTH = 100_000;
 const MAX_TARGET_ROLE_LENGTH = 120;
 const MAX_JOB_DESCRIPTION_LENGTH = 10_000;
+const MAX_QUESTION_LENGTH = 2_000;
+const MAX_ANSWER_LENGTH = 20_000;
 
 function requiredText(value: unknown, fieldName: string, maximumLength: number): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
@@ -139,5 +142,29 @@ export function validateInterviewQuestionRequest(payload: unknown): InterviewQue
       'Interview type',
     ),
     difficulty: enumValue<Difficulty>(payload.difficulty, DIFFICULTIES, 'Difficulty'),
+  };
+}
+
+export function validateAnswerEvaluationRequest(payload: unknown): AnswerEvaluationRequest {
+  if (!isRecord(payload)) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'A valid answer evaluation request is required.');
+  }
+
+  return {
+    question: requiredText(payload.question, 'Question', MAX_QUESTION_LENGTH),
+    answer: requiredText(payload.answer, 'Answer', MAX_ANSWER_LENGTH),
+    targetRole: requiredText(payload.targetRole, 'Target role', MAX_TARGET_ROLE_LENGTH),
+    experienceLevel: enumValue<ExperienceLevel>(
+      payload.experienceLevel,
+      EXPERIENCE_LEVELS,
+      'Experience level',
+    ),
+    interviewType: enumValue<InterviewType>(
+      payload.interviewType,
+      INTERVIEW_TYPES,
+      'Interview type',
+    ),
+    difficulty: enumValue<Difficulty>(payload.difficulty, DIFFICULTIES, 'Difficulty'),
+    resumeText: optionalText(payload.resumeText, 'Resume text', MAX_RESUME_TEXT_LENGTH),
   };
 }
