@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ResumeUpload } from '../components/ResumeUpload';
 import { getHealth } from '../services/api';
 
 type HealthStatus = 'checking' | 'connected' | 'unavailable';
@@ -24,7 +25,7 @@ export function LandingPage() {
         <p className="mb-4 text-sm font-semibold tracking-wide text-indigo-600">JOBLUXE</p>
         <h1 className="text-4xl font-bold tracking-tight text-slate-900">AI Mock Interview</h1>
         <p className="mt-4 text-lg leading-8 text-slate-600">
-          The frontend foundation is running. Interview functionality will be added in future steps.
+          Upload a resume to extract its readable text.
         </p>
         <p
           className={`mt-8 rounded-lg px-4 py-3 text-sm font-medium ${
@@ -38,6 +39,7 @@ export function LandingPage() {
         >
           {statusMessage[healthStatus]}
         </p>
+        <ResumeUpload />
       </section>
     </main>
   );
